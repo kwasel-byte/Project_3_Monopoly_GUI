@@ -25,6 +25,20 @@ public class Main {
         System.out.println("The First Roll is " + diec1 + " The Second Roll is " + diec2 + ".");
         System.out.println("Move " + spaces + " spaces.");
 
+        int newLocation = player.getLocation() + spaces;
+
+        if (newLocation >= board.getBoardSize()) {
+            newLocation = newLocation - board.getBoardSize();
+            player.addMoney(200);
+            System.out.println("You know get %200");
+        }
+
+        player.setLocation(newLocation);
+
+        Property landProprty = board.getProperty(player.getLocation());
+        System.out.println("Your On " + landProprty.getName() + ".");
+
+
 
 
 
