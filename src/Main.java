@@ -2,7 +2,7 @@
 
 public class Main {
     public static void main(String[] args) {
-        System.out.println("Welcome ro Basic Monopoly!");
+        System.out.println("Welcome to Basic Monopoly!");
 
 
     }
