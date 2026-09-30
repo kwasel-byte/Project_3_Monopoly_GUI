@@ -1,5 +1,4 @@
-import jdk.swing.interop.SwingInterOpUtils;
-
+import java.util.Random;
 import java.util.Scanner;
 
 
@@ -16,6 +15,18 @@ public class Main {
 
         System.out.println(player.getName() + " Start with $" + player.getMoney() + ".");
         System.out.println("The board has " + board.getBoardSize() + " properties.");
+
+        Random random = new Random();
+
+        int diec1 = random.nextInt(6) + 1;
+        int diec2 = random.nextInt(6) + 1;
+        int spaces = diec1 + diec2;
+
+        System.out.println("The First Roll is " + diec1 + " The Second Roll is " + diec2 + ".");
+        System.out.println("Move " + spaces + " spaces.");
+
+
+
 
 
 
