@@ -1,5 +1,9 @@
 import java.util.Random;
 import java.util.Scanner;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
+
 
 
 public class Main {
@@ -17,6 +21,12 @@ public class Main {
 
         Player player = player1;
         Board board = new Board();
+        System.out.print("Load the saved game? (yes/no): ");
+        String loadChoice = keyboard.nextLine();
+
+        if (loadChoice.equalsIgnoreCase("yes")) {
+            loadGame(player1, player2, board);
+        }
 
         System.out.println(player.getName() + " Start with $" + player.getMoney() + ".");
         System.out.println("The board has " + board.getBoardSize() + " properties.");
@@ -49,7 +59,6 @@ public class Main {
             } else {
                 doublesInARow = 0;
             }
-
             if (doublesInARow == 3) {
                 player.setInJail(true);
                 doublesInARow = 0;
@@ -61,18 +70,14 @@ public class Main {
                 }
                 continue;
             }
-
             System.out.println("The First Roll is " + diec1 + " The Second Roll is " + diec2 + ".");
             System.out.println("Move " + spaces + " spaces.");
-
             int newLocation = player.getLocation() + spaces;
-
             if (newLocation >= board.getBoardSize()) {
                 newLocation = newLocation - board.getBoardSize();
                 player.addMoney(200);
                 System.out.println("You know get %200");
             }
-
             player.setLocation(newLocation);
 
             Property landProprty = board.getProperty(player.getLocation());
@@ -109,37 +114,79 @@ public class Main {
                     player2.addMoney(rent);
                 }
             }
-                if (playing && ! rolledDouble) {
-                    if (player.getMoney() <= 0) {
-                        System.out.println(player.getName() + " has no money.");
-                        board.releaseProperty(player.getName());
-                        System.out.println("All of " + player.getName() + " properties are unowned.");
-                        playing = false;
-                    }
-                    System.out.println("Play another turn? yes or no: ");
-                    String playAgain  = keyboard.nextLine();
+            if (player.getMoney() <= 0) {
+                System.out.println(player.getName() + " has no money.");
+                board.releaseProperty(player.getName());
+                System.out.println("All of " + player.getName() + "'s properties are unowned.");
+                playing = false;
+            }
 
-                    if (!playAgain.equalsIgnoreCase("yes")) {
-                        playing = false;
-                    }
+            if (playing && !rolledDouble) {
+                System.out.println("Play another turn? yes or no: ");
+                String playAgain = keyboard.nextLine();
+
+                if (!playAgain.equalsIgnoreCase("yes")) {
+                    playing = false;
                 }
-                if (playing && !rolledDouble) {
-                    if (player == player1) {
-                        player = player2;
-                    } else  {
-                        player = player1;
-                    }
+            }
+
+            saveGame(player1, player2, board);
+
+            if (playing && !rolledDouble) {
+                if (player == player1) {
+                    player = player2;
+                } else {
+                    player = player1;
                 }
-
-
-
+            }
 
         }
+    }
+    public static void saveGame(Player player1, Player player2, Board board) {
+        try {
+            PrintWriter writer = new PrintWriter(new File("monopoly_save.txt"));
 
+            writer.println(player1.getMoney());
+            writer.println(player1.getLocation());
+            writer.println(player1.getInJail());
+            writer.println(player2.getMoney());
+            writer.println(player2.getLocation());
+            writer.println(player2.getInJail());
 
+            for (int i = 0; i < board.getBoardSize(); i++) {
+                writer.println(board.getProperty(i).getOwner());
+            }
+            writer.close();
+            System.out.println("Game saved.");
 
+        } catch (FileNotFoundException e) {
+            System.out.println("Could not save the game.");
+        }
+    }
+    public static void loadGame(Player player1, Player player2, Board board) {
+        try {
+            Scanner fileScanner = new Scanner(new File("monopoly_save.txt"));
 
+            player1.setMoney(fileScanner.nextInt());
+            player1.setLocation(fileScanner.nextInt());
+            player1.setInJail(fileScanner.nextBoolean());
 
+            player2.setMoney(fileScanner.nextInt());
+            player2.setLocation(fileScanner.nextInt());
+            player2.setInJail(fileScanner.nextBoolean());
 
+            fileScanner.nextLine();
+
+            for (int i = 0; i < board.getBoardSize(); i++) {
+                String owner = fileScanner.nextLine();
+                board.getProperty(i).setOwner(owner);
+            }
+
+            fileScanner.close();
+            System.out.println("Saved game loaded.");
+
+        } catch (FileNotFoundException e) {
+            System.out.println("No saved game was found.");
+        }
     }
 };

@@ -32,6 +32,9 @@ public class Player {
     public void setLocation(int location) {
         this.location = location;
     }
+    public void setMoney(int money) {
+        this.money = money;
+    }
 
     public void setInJail(boolean inJail) {
         this.inJail = inJail;
