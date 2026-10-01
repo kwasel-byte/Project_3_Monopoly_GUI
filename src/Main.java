@@ -38,6 +38,21 @@ public class Main {
         Property landProprty = board.getProperty(player.getLocation());
         System.out.println("Your On " + landProprty.getName() + ".");
 
+        if (!landProprty.isOwned()) {
+            System.out.println("property costs $" + landProprty.getPurchasePrice() + ".");
+            System.out.println("Do you what to buy(Yes or No)? ");
+            String buyCoice = keyboard.nextLine();
+            if (buyCoice.equalsIgnoreCase("Yes")) {
+                if (player.getMoney() >= landProprty.getPurchasePrice()) {
+                    player.payMoney(landProprty.getPurchasePrice());
+                    landProprty.setOwner(player.getName());
+                    System.out.println("You now have $" + landProprty.getPurchasePrice() + ".");
+                    System.out.println("Money Left: $" + player.getMoney());
+                } else {
+                    System.out.println("dont have enough money.");
+                }
+            }
+        }
 
 
 
