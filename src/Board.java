@@ -27,6 +27,17 @@ public class Board {
     public int getBoardSize() {
         return properties.size();
     }
+    public void releaseProperty(String ownerName) {
+        for (int i = 0; i < properties.size(); i++) {
+            Property property = properties.get(i);
+            if (property.getOwner().equals(ownerName)) {
+                property.setOwner("No one");
+            }
+
+
+        }
+    }
+
 
 }
 
