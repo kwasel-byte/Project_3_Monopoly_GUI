@@ -23,6 +23,8 @@ public class Main {
 
         Random random = new Random();
         boolean playing = true;
+        int doublesInARow = 0;
+
         while (playing) {
 
             System.out.println();
@@ -31,6 +33,15 @@ public class Main {
             int diec1 = random.nextInt(6) + 1;
             int diec2 = random.nextInt(6) + 1;
             int spaces = diec1 + diec2;
+
+            boolean rolledDouble = diec1 ==  diec2;
+
+            if (rolledDouble) {
+                doublesInARow = doublesInARow + 1;
+                System.out.println("You rolled doubles!");
+            } else {
+                doublesInARow = 0;
+            }
 
             System.out.println("The First Roll is " + diec1 + " The Second Roll is " + diec2 + ".");
             System.out.println("Move " + spaces + " spaces.");
@@ -78,21 +89,26 @@ public class Main {
                 } else {
                     player2.addMoney(rent);
                 }
-
             }
+                if (!rolledDouble) {
+                    System.out.println("Play another turn? yes or no: ");
+                    String playAgain  = keyboard.nextLine();
 
-            System.out.println("Play another turn? YES or NO: ");
-            String playAgain = keyboard.nextLine();
-            if (!playAgain.equalsIgnoreCase("YES")) {
-                playing = false;
-            }
-            if (playing){
-                if (player == player1) {
-                    player = player2;
-                } else {
-                    player = player1;
+                    if (playAgain.equalsIgnoreCase("yes")) {
+                        playing = false;
+                    }
                 }
-            }
+                if (playing && !rolledDouble) {
+                    if (player == player1) {
+                        player = player2;
+                    } else  {
+                        player = player1;
+                    }
+                }
+
+
+
+
         }
 
 
