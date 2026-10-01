@@ -109,7 +109,13 @@ public class Main {
                     player2.addMoney(rent);
                 }
             }
-                if (!rolledDouble) {
+                if (playing && ! rolledDouble) {
+                    if (player.getMoney() <= 0) {
+                        System.out.println(player.getName() + " has no money.");
+                        board.releaseProperty(player.getName());
+                        System.out.println("All of " + player.getName() + " properties are unowned.");
+                        playing = false;
+                    }
                     System.out.println("Play another turn? yes or no: ");
                     String playAgain  = keyboard.nextLine();
 
