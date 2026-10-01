@@ -30,6 +30,13 @@ public class Main {
             System.out.println();
             System.out.println("-----" + player.getName() + "'s turn ----");
 
+            if (player.getInJail()) {
+                System.out.println(player.getName() + " is a jail.");
+                player.payMoney(50);
+                player.setInJail(false);
+                System.out.println(player.getName() + " Paid $50  and left jail.");
+            }
+
             int diec1 = random.nextInt(6) + 1;
             int diec2 = random.nextInt(6) + 1;
             int spaces = diec1 + diec2;
@@ -41,6 +48,18 @@ public class Main {
                 System.out.println("You rolled doubles!");
             } else {
                 doublesInARow = 0;
+            }
+
+            if (doublesInARow == 3) {
+                player.setInJail(true);
+                doublesInARow = 0;
+                System.out.println("Three doubles " + player.getName() + " goes to jail.");
+                if (player == player1) {
+                    player = player2;
+                }  else {
+                    player = player1;
+                }
+                continue;
             }
 
             System.out.println("The First Roll is " + diec1 + " The Second Roll is " + diec2 + ".");
@@ -94,7 +113,7 @@ public class Main {
                     System.out.println("Play another turn? yes or no: ");
                     String playAgain  = keyboard.nextLine();
 
-                    if (playAgain.equalsIgnoreCase("yes")) {
+                    if (!playAgain.equalsIgnoreCase("yes")) {
                         playing = false;
                     }
                 }
