@@ -10,7 +10,12 @@ public class Main {
         System.out.println("Enter your name: ");
         String playerName = keyboard.nextLine();
 
-        Player  player = new Player(playerName);
+        Player  player1 = new Player(playerName);
+        System.out.println("Enter player 2 name: ");
+        String player2Name = keyboard.nextLine();
+        Player player2 = new Player(player2Name);
+
+        Player player = player1;
         Board board = new Board();
 
         System.out.println(player.getName() + " Start with $" + player.getMoney() + ".");
@@ -19,6 +24,9 @@ public class Main {
         Random random = new Random();
         boolean playing = true;
         while (playing) {
+
+            System.out.println();
+            System.out.println("-----" + player.getName() + "'s turn ----");
 
             int diec1 = random.nextInt(6) + 1;
             int diec2 = random.nextInt(6) + 1;
@@ -59,7 +67,13 @@ public class Main {
             String playAgain = keyboard.nextLine();
             if (!playAgain.equalsIgnoreCase("YES")) {
                 playing = false;
-
+            }
+            if (playing){
+                if (player == player1) {
+                    player = player2;
+                } else {
+                    player = player1;
+                }
             }
         }
 
