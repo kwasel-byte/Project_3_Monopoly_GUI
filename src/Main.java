@@ -51,8 +51,9 @@ public class Main {
             if (!landProprty.isOwned()) {
                 System.out.println("property costs $" + landProprty.getPurchasePrice() + ".");
                 System.out.println("Do you what to buy(Yes or No)? ");
-                String buyCoice = keyboard.nextLine();
-                if (buyCoice.equalsIgnoreCase("Yes")) {
+                String buyChoice = keyboard.nextLine();
+
+                if (buyChoice.equalsIgnoreCase("Yes")) {
                     if (player.getMoney() >= landProprty.getPurchasePrice()) {
                         player.payMoney(landProprty.getPurchasePrice());
                         landProprty.setOwner(player.getName());
@@ -62,7 +63,24 @@ public class Main {
                         System.out.println("dont have enough money.");
                     }
                 }
+            } else if (landProprty.getOwner().equals(player.getName())) {
+                System.out.println("Already own This ");
+            } else {
+                int rent = landProprty.getRentPrice();
+
+                System.out.println("This property belongs to " + landProprty.getOwner() + ".");
+                System.out.println("You paid $" + rent + " in rent.");
+
+                player.payMoney(rent);
+
+                if (landProprty.getOwner().equals(player1.getName())) {
+                    player1.addMoney(rent);
+                } else {
+                    player2.addMoney(rent);
+                }
+
             }
+
             System.out.println("Play another turn? YES or NO: ");
             String playAgain = keyboard.nextLine();
             if (!playAgain.equalsIgnoreCase("YES")) {
