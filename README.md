@@ -42,9 +42,9 @@ How to Play
 8. Click Load Game to restore a saved game.
 
 Screenshots
-![Kassim Monopoly running](game_screenshot.png)
-![Kassim Monopoly running](game1_screenshot.png)
+![Monopoly Board with Properties and Houses](monopoly_board.png)
 ![Kassim Monopoly GUI](monopoly_gui.png)
+
 
 Screenshots of the JavaFX game interface will be added before submission.
 

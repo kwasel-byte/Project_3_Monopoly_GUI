@@ -1,14 +1,15 @@
 import javafx.application.Application;
+import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
-import javafx.geometry.Pos;
 import javafx.stage.Stage;
 
 import java.io.File;
-import java.io.PrintWriter;
 import java.io.FileNotFoundException;
+import java.io.PrintWriter;
 import java.util.Scanner;
 
 public class MonopolyGUI extends Application {
@@ -21,69 +22,104 @@ public class MonopolyGUI extends Application {
     @Override
     public void start(Stage stage) {
 
-        Label title = new Label("Welcome to Kassim Monopoly!");
-
-        Player player1 = new Player("Kassim");
-        Player player2 = new Player("Wasel");
+        Player player1 = new Player("Player1");
+        Player player2 = new Player("Player2");
         Board board = new Board();
 
-        Label player1Info = new Label("Kassim - $1500");
-        Label player2Info = new Label("Wasel - $1500");
+        // GRAPHICAL BOARD
+        MonopolyBoardView boardView =
+                new MonopolyBoardView(board, player1, player2);
 
-        Label player1Position = new Label("Kassim is at position 0");
-        Label player2Position = new Label("Wasel is at position 0");
+        Label title = new Label("Welcome to Kassim Monopoly!");
+        title.setWrapText(true);
+        title.setMaxWidth(340);
+
+        Label player1Info = new Label();
+        Label player2Info = new Label();
+        Label player1Position = new Label();
+        Label player2Position = new Label();
 
         Button rollButton = new Button("Roll Dice");
         Button buyButton = new Button("Buy Property");
+        Button houseButton = new Button("Buy House ($50)");
         Button jailButton = new Button("Pay $50 to Leave Jail");
         Button saveButton = new Button("Save Game");
         Button loadButton = new Button("Load Game");
 
         buyButton.setDisable(true);
+        houseButton.setDisable(true);
+
+        // UPDATE PLAYER STATS AND BOARD
+        Runnable updateDisplay = () -> {
+            player1Info.setText("Player1 - $" + player1.getMoney());
+            player2Info.setText("Player2 - $" + player2.getMoney());
+
+            player1Position.setText(
+                    "Player1 is at position " + player1.getLocation());
+
+            player2Position.setText(
+                    "Player2 is at position " + player2.getLocation());
+
+            boardView.updateBoard();
+        };
+
+        // CHECK WHETHER CURRENT PLAYER CAN BUY HOUSES
+        Runnable updateHouseButton = () -> {
+            Player player = currentTurn == 0 ? player1 : player2;
+            boolean canBuild = false;
+
+            if (!player.getInJail()) {
+                for (int i = 0; i < board.getBoardSize(); i++) {
+                    Property property = board.getProperty(i);
+
+                    if (property.getOwner().equals(player.getName())
+                            && property.canBuildHouse()
+                            && board.ownsCompleteSet(
+                            player.getName(),
+                            property.getColorGroup())
+                            && player.getMoney() >= property.getHousePrice()) {
+                        canBuild = true;
+                        break;
+                    }
+                }
+            }
+
+            houseButton.setDisable(!canBuild);
+        };
+
+        updateDisplay.run();
+        updateHouseButton.run();
 
         // ROLL DICE
         rollButton.setOnAction(e -> {
 
-            Player currentPlayer;
-            Player otherPlayer;
+            Player currentPlayer =
+                    currentTurn == 0 ? player1 : player2;
 
-            if (currentTurn == 0) {
-                currentPlayer = player1;
-                otherPlayer = player2;
-            } else {
-                currentPlayer = player2;
-                otherPlayer = player1;
-            }
+            Player otherPlayer =
+                    currentTurn == 0 ? player2 : player1;
 
             if (currentPlayer.getInJail()) {
                 title.setText(currentPlayer.getName()
                         + " is in jail! Pay $50 to leave.");
                 buyButton.setDisable(true);
                 lastPlayer = null;
+                updateHouseButton.run();
                 return;
             }
 
-            // Rolling forfeits the previous purchase opportunity
             buyButton.setDisable(true);
             lastPlayer = null;
 
             int dice1 = (int) (Math.random() * 6) + 1;
             int dice2 = (int) (Math.random() * 6) + 1;
 
-            boolean isDoubles = (dice1 == dice2);
+            boolean isDoubles = dice1 == dice2;
 
             if (currentTurn == 0) {
-                if (isDoubles) {
-                    kassimDoubles++;
-                } else {
-                    kassimDoubles = 0;
-                }
+                kassimDoubles = isDoubles ? kassimDoubles + 1 : 0;
             } else {
-                if (isDoubles) {
-                    waselDoubles++;
-                } else {
-                    waselDoubles = 0;
-                }
+                waselDoubles = isDoubles ? waselDoubles + 1 : 0;
             }
 
             // THREE DOUBLES = JAIL
@@ -99,17 +135,19 @@ public class MonopolyGUI extends Application {
                 }
 
                 title.setText(currentPlayer.getName()
-                        + " rolled doubles 3 times and went to jail!");
+                        + " rolled doubles three times and went to jail!");
 
                 currentTurn = 1 - currentTurn;
+                updateDisplay.run();
+                updateHouseButton.run();
                 return;
             }
 
-            int total = dice1 + dice2;
             int oldPosition = currentPlayer.getLocation();
+            int total = dice1 + dice2;
 
-            int newPosition = (oldPosition + total)
-                    % board.getBoardSize();
+            int newPosition =
+                    (oldPosition + total) % board.getBoardSize();
 
             boolean passedGo =
                     oldPosition + total >= board.getBoardSize();
@@ -119,7 +157,6 @@ public class MonopolyGUI extends Application {
             }
 
             currentPlayer.setLocation(newPosition);
-            lastPlayer = currentPlayer;
 
             Property property = board.getProperty(newPosition);
 
@@ -131,29 +168,49 @@ public class MonopolyGUI extends Application {
                 message += "\nPassed GO and collected $200!";
             }
 
-            // PROPERTY AND RENT
-            if (property.isOwned()) {
+            // CHANCE CARD
+            if (board.isChance(newPosition)) {
+                message += "\n"
+                        + MonopolyCards.drawChance(currentPlayer);
 
-                if (!property.getOwner().equals(
-                        currentPlayer.getName())) {
+                // COMMUNITY CHEST CARD
+            } else if (board.isCommunityChest(newPosition)) {
+                message += "\n"
+                        + MonopolyCards.drawCommunityChest(currentPlayer);
 
-                    int rent = property.getRentPrice();
+                // PROPERTY
+            } else {
+                lastPlayer = currentPlayer;
 
-                    currentPlayer.payMoney(rent);
-                    otherPlayer.addMoney(rent);
+                if (property.isOwned()) {
+                    if (!property.getOwner().equals(
+                            currentPlayer.getName())) {
 
-                    message += "\n" + currentPlayer.getName()
-                            + " paid $" + rent
-                            + " rent to " + otherPlayer.getName();
+                        int rent = property.getRentPrice();
+
+                        currentPlayer.payMoney(rent);
+                        otherPlayer.addMoney(rent);
+
+                        message += "\n" + currentPlayer.getName()
+                                + " paid $" + rent
+                                + " rent to " + otherPlayer.getName();
+
+                        if (property.getHouses() > 0) {
+                            message += "\nHouses: "
+                                    + property.getHouses();
+                        }
+
+                    } else {
+                        message += "\nYou already own this property!";
+                        message += "\nHouses: " + property.getHouses();
+                    }
 
                 } else {
-                    message += "\nYou already own this property!";
-                }
+                    buyButton.setDisable(false);
 
-            } else {
-                buyButton.setDisable(false);
-                message += "\nThis property costs $"
-                        + property.getPurchasePrice();
+                    message += "\nThis property costs $"
+                            + property.getPurchasePrice();
+                }
             }
 
             if (isDoubles) {
@@ -163,20 +220,8 @@ public class MonopolyGUI extends Application {
             }
 
             title.setText(message);
-
-            player1Info.setText(
-                    "Kassim - $" + player1.getMoney()
-            );
-            player2Info.setText(
-                    "Wasel - $" + player2.getMoney()
-            );
-
-            player1Position.setText(
-                    "Kassim is at position " + player1.getLocation()
-            );
-            player2Position.setText(
-                    "Wasel is at position " + player2.getLocation()
-            );
+            updateDisplay.run();
+            updateHouseButton.run();
         });
 
         // BUY PROPERTY
@@ -187,9 +232,16 @@ public class MonopolyGUI extends Application {
                 return;
             }
 
-            Property property = board.getProperty(
-                    lastPlayer.getLocation()
-            );
+            Property property =
+                    board.getProperty(lastPlayer.getLocation());
+
+            if (board.isChance(lastPlayer.getLocation())
+                    || board.isCommunityChest(lastPlayer.getLocation())) {
+
+                title.setText("You cannot buy this space!");
+                buyButton.setDisable(true);
+                return;
+            }
 
             if (property.isOwned()) {
                 title.setText("Property already owned!");
@@ -210,14 +262,68 @@ public class MonopolyGUI extends Application {
                     + " bought " + property.getName()
                     + " for $" + property.getPurchasePrice());
 
-            player1Info.setText(
-                    "Kassim - $" + player1.getMoney()
-            );
-            player2Info.setText(
-                    "Wasel - $" + player2.getMoney()
-            );
-
             buyButton.setDisable(true);
+            updateDisplay.run();
+            updateHouseButton.run();
+        });
+
+        // BUY HOUSE
+        houseButton.setOnAction(e -> {
+
+            Player currentPlayer =
+                    currentTurn == 0 ? player1 : player2;
+
+            if (currentPlayer.getInJail()) {
+                title.setText("You cannot buy houses while in jail!");
+                return;
+            }
+
+            Property selectedProperty = null;
+
+            for (int i = 0; i < board.getBoardSize(); i++) {
+                Property property = board.getProperty(i);
+
+                if (property.getOwner().equals(currentPlayer.getName())
+                        && property.canBuildHouse()
+                        && board.ownsCompleteSet(
+                        currentPlayer.getName(),
+                        property.getColorGroup())) {
+
+                    if (selectedProperty == null
+                            || property.getHouses()
+                            < selectedProperty.getHouses()) {
+                        selectedProperty = property;
+                    }
+                }
+            }
+
+            if (selectedProperty == null) {
+                title.setText("You must own a complete color set "
+                        + "before buying houses!");
+                updateHouseButton.run();
+                return;
+            }
+
+            int housePrice = selectedProperty.getHousePrice();
+
+            if (currentPlayer.getMoney() < housePrice) {
+                title.setText("Not enough money to buy a house!");
+                updateHouseButton.run();
+                return;
+            }
+
+            currentPlayer.payMoney(housePrice);
+            selectedProperty.addHouse();
+
+            title.setText(currentPlayer.getName()
+                    + " bought a house on "
+                    + selectedProperty.getName()
+                    + " for $" + housePrice
+                    + "\nTotal houses: " + selectedProperty.getHouses()
+                    + "\nNew rent: $" + selectedProperty.getRentPrice());
+
+            updateDisplay.run();
+            updateHouseButton.run();
         });
 
         // PAY TO LEAVE JAIL
@@ -243,12 +349,8 @@ public class MonopolyGUI extends Application {
             title.setText(currentPlayer.getName()
                     + " paid $50 and left jail! Roll the dice.");
 
-            player1Info.setText(
-                    "Kassim - $" + player1.getMoney()
-            );
-            player2Info.setText(
-                    "Wasel - $" + player2.getMoney()
-            );
+            updateDisplay.run();
+            updateHouseButton.run();
         });
 
         // SAVE GAME
@@ -256,6 +358,9 @@ public class MonopolyGUI extends Application {
 
             try (PrintWriter writer =
                          new PrintWriter("monopoly_gui_save.txt")) {
+
+                writer.println("MONOPOLY_SAVE_V2");
+                writer.println(board.getBoardSize());
 
                 writer.println(currentTurn);
                 writer.println(kassimDoubles);
@@ -270,13 +375,15 @@ public class MonopolyGUI extends Application {
                 writer.println(player2.getInJail());
 
                 for (int i = 0; i < board.getBoardSize(); i++) {
-                    writer.println(board.getProperty(i).getOwner());
+                    Property property = board.getProperty(i);
+                    writer.println(property.getOwner());
+                    writer.println(property.getHouses());
                 }
 
                 writer.println(
                         lastPlayer == player1 ? 1 :
-                                lastPlayer == player2 ? 2 : 0
-                );
+                                lastPlayer == player2 ? 2 : 0);
+
                 writer.println(!buyButton.isDisabled());
 
                 title.setText("Game saved successfully!");
@@ -298,6 +405,22 @@ public class MonopolyGUI extends Application {
 
             try (Scanner reader = new Scanner(file)) {
 
+                String version = reader.nextLine();
+
+                if (!version.equals("MONOPOLY_SAVE_V2")) {
+                    title.setText("Old save format detected. "
+                            + "Start a new game and save again.");
+                    return;
+                }
+
+                int savedBoardSize = reader.nextInt();
+
+                if (savedBoardSize != board.getBoardSize()) {
+                    title.setText("Saved board does not match "
+                            + "the current game.");
+                    return;
+                }
+
                 int savedTurn = reader.nextInt();
                 int savedKassimDoubles = reader.nextInt();
                 int savedWaselDoubles = reader.nextInt();
@@ -310,19 +433,20 @@ public class MonopolyGUI extends Application {
                 int position2 = reader.nextInt();
                 boolean jail2 = reader.nextBoolean();
 
-                String[] owners =
-                        new String[board.getBoardSize()];
+                String[] owners = new String[savedBoardSize];
+                int[] houses = new int[savedBoardSize];
 
                 reader.nextLine();
 
-                for (int i = 0; i < owners.length; i++) {
+                for (int i = 0; i < savedBoardSize; i++) {
                     owners[i] = reader.nextLine();
+                    houses[i] = reader.nextInt();
+                    reader.nextLine();
                 }
 
                 int savedLastPlayer = reader.nextInt();
                 boolean canBuy = reader.nextBoolean();
 
-                // Apply data only after reading succeeds
                 currentTurn = savedTurn;
                 kassimDoubles = savedKassimDoubles;
                 waselDoubles = savedWaselDoubles;
@@ -335,8 +459,10 @@ public class MonopolyGUI extends Application {
                 player2.setLocation(position2);
                 player2.setInJail(jail2);
 
-                for (int i = 0; i < owners.length; i++) {
-                    board.getProperty(i).setOwner(owners[i]);
+                for (int i = 0; i < savedBoardSize; i++) {
+                    Property property = board.getProperty(i);
+                    property.setOwner(owners[i]);
+                    property.setHouses(houses[i]);
                 }
 
                 if (savedLastPlayer == 1) {
@@ -347,25 +473,15 @@ public class MonopolyGUI extends Application {
                     lastPlayer = null;
                 }
 
+                boolean specialSpace = lastPlayer != null
+                        && (board.isChance(lastPlayer.getLocation())
+                        || board.isCommunityChest(lastPlayer.getLocation()));
+
                 buyButton.setDisable(
-                        !canBuy || lastPlayer == null
-                );
+                        !canBuy || lastPlayer == null || specialSpace);
 
-                player1Info.setText(
-                        "Kassim - $" + player1.getMoney()
-                );
-                player2Info.setText(
-                        "Wasel - $" + player2.getMoney()
-                );
-
-                player1Position.setText(
-                        "Kassim is at position "
-                                + player1.getLocation()
-                );
-                player2Position.setText(
-                        "Wasel is at position "
-                                + player2.getLocation()
-                );
+                updateDisplay.run();
+                updateHouseButton.run();
 
                 title.setText("Game loaded successfully!\n"
                         + (currentTurn == 0 ? "Kassim" : "Wasel")
@@ -377,10 +493,10 @@ public class MonopolyGUI extends Application {
         });
 
         // GUI LAYOUT
-        VBox layout = new VBox(15);
-        layout.setAlignment(Pos.CENTER);
+        VBox controls = new VBox(12);
+        controls.setAlignment(Pos.CENTER);
 
-        layout.getChildren().addAll(
+        controls.getChildren().addAll(
                 title,
                 player1Info,
                 player1Position,
@@ -388,12 +504,19 @@ public class MonopolyGUI extends Application {
                 player2Position,
                 rollButton,
                 buyButton,
+                houseButton,
                 jailButton,
                 saveButton,
                 loadButton
         );
 
-        Scene scene = new Scene(layout, 650, 550);
+        // BOARD ON LEFT, CONTROLS ON RIGHT
+        HBox layout = new HBox(20);
+        layout.setAlignment(Pos.CENTER);
+
+        layout.getChildren().addAll(boardView, controls);
+
+        Scene scene = new Scene(layout, 1050, 650);
 
         stage.setTitle("Kassim Monopoly");
         stage.setScene(scene);
@@ -404,4 +527,3 @@ public class MonopolyGUI extends Application {
         launch(args);
     }
 }
-
